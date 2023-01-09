@@ -1,0 +1,16 @@
+[package]
+name = "svd_compression"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand_xoshiro = "0.6.0"
+rand = "0.8.5"
+ndarray = "0.15.6"
+clap = { version = "4.0.32", features = ["derive"] }
+num = "0.4.0"
+svdlibrs = "0.5.0"
+nalgebra-sparse = "0.8.0"
+image = "0.24.5"
