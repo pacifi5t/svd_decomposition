@@ -24,25 +24,26 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let image = image::open(args.ifile)?;
-    let colors = extract_color_matrices(&image);
-
     let max_rank = image.width().min(image.height());
-    let nsingular = (max_rank as f32 * (10 - args.comp) as f32 / 10.0) as usize;
+    let n_singular = (max_rank as f32 * (10 - args.comp) as f32 / 10.0) as usize;
 
-    let mut compressed_colors = vec![];
-    for each in colors.iter().take(3) {
-        let matrix = compress(each, nsingular);
-        compressed_colors.push(matrix.iter().cloned().collect::<Vec<f64>>());
+    let mut comp_colors = vec![];
+    for each in extract_color_matrices(&image).iter().take(3) {
+        let matrix = compress(each, n_singular);
+        comp_colors.push(matrix.iter().cloned().collect::<Vec<f64>>());
     }
 
-    let mut pixels = vec![];
-    for (i, each) in compressed_colors[0].iter().enumerate() {
-        let each1 = compressed_colors[1][i];
-        let each2 = compressed_colors[2][i];
+    let path = args.ofile.unwrap_or_else(|| "out.jpg".into());
+    create_new_image(image, &comp_colors).save_with_format(path, ImageFormat::Jpeg)?;
+    Ok(())
+}
 
+fn create_new_image(image: DynamicImage, comp_colors: &[Vec<f64>]) -> DynamicImage {
+    let mut pixels = vec![];
+    for (i, each) in comp_colors[0].iter().enumerate() {
         let r = (each.min(1.0) * u8::MAX as f64) as u8;
-        let g = (each1.min(1.0) * u8::MAX as f64) as u8;
-        let b = (each2.min(1.0) * u8::MAX as f64) as u8;
+        let g = (comp_colors[1][i].min(1.0) * u8::MAX as f64) as u8;
+        let b = (comp_colors[2][i].min(1.0) * u8::MAX as f64) as u8;
         pixels.push(Rgba([r, g, b, 255]))
     }
 
@@ -52,10 +53,7 @@ fn main() -> Result<()> {
         let x = i as u32 % new_image.width();
         new_image.put_pixel(x, y, *each);
     }
-
-    let path = args.ofile.unwrap_or_else(|| "out.jpg".into());
-    new_image.save_with_format(path, ImageFormat::Jpeg)?;
-    Ok(())
+    new_image
 }
 
 fn extract_color_matrices(image: &DynamicImage) -> Vec<DMatrix<f64>> {
@@ -74,18 +72,12 @@ fn extract_color_matrices(image: &DynamicImage) -> Vec<DMatrix<f64>> {
         .collect()
 }
 
-fn compress(color_matrix: &DMatrix<f64>, nsingular: usize) -> DMatrix<f64> {
+fn compress(color_matrix: &DMatrix<f64>, ns: usize) -> DMatrix<f64> {
     let svd = SVD::new(color_matrix.to_owned(), true, true);
-    let u = svd.u.unwrap();
-    let vt = svd.v_t.unwrap();
+    let (u, vt) = (svd.u.unwrap(), svd.v_t.unwrap());
+
     let mut a = DMatrix::<f64>::zeros(u.nrows(), vt.ncols());
+    a.set_diagonal(&svd.singular_values);
 
-    for i in 0..nsingular {
-        let ui = u.index((.., i));
-        let vi = vt.index((i, ..));
-        let t = ui * vi;
-        a += svd.singular_values[i] * t;
-    }
-
-    a
+    u.index((.., ..ns)) * a.index((..ns, ..ns)) * vt.index((..ns, ..))
 }
