@@ -26,8 +26,8 @@ fn main() {
 
     print!("Source matrix{}", mat);
     print!("U matrix{}", u.index((.., ..ns)));
-    print!("Vt matrix{}", vt.index((..ns, ..)));
     print!("Singular values{}", singular.index((..ns, ..ns)));
+    print!("Vt matrix{}", vt.index((..ns, ..)));
 }
 
 fn random_matrix(nrows: usize, ncols: usize) -> DMatrix<f64> {
