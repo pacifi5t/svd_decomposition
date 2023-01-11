@@ -1,5 +1,5 @@
 [package]
-name = "svd_compression"
+name = "svd_decomposition"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,5 +17,5 @@ image = "0.24.5"
 anyhow = "1.0.68"
 
 [[bin]]
-name = "svdc"
+name = "svdd"
 path = "src/main.rs"
